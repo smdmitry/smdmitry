@@ -1,0 +1,11 @@
+<div id="queueList">
+<? if (!empty($queue)): ?>
+    <? foreach ($queue as $command): ?>
+        <?=$command->getId()?>. <?=$command->getTitle()?>: <?=$command->getStatusText()?> (<?=$command->getUpdated()?>)
+        <? if ($command->getData()): ?>
+            <span style="color: #808080; font-size: 11px;"><?=$command->getData()?></span>
+        <? endif ?>
+        <br/>
+    <? endforeach ?>
+<? endif ?>
+</div>

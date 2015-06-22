@@ -1,0 +1,42 @@
+<? if (count($urls)):?>
+    <table class="table table-hover">
+        <thead>
+        <tr>
+            <th>Long URL</th>
+            <th>Created</th>
+            <th>Short URL</th>
+            <th></th>
+            <th>Clicks</th>
+        </tr>
+        </thead>
+        <tbody style="font-size: 12px;">
+        <? foreach ($urls as $url): ?>
+            <tr onclick="shorten.showUrlInfo('<?=$url->getHash()?>');">
+                <td><a href="<?=$url->getLongUrl()?>" target="_blank"><?=\Shorten\Service\Base::strEllipsis($url->getLongUrl(false), 42)?></a></td>
+                <td style="font-size: 11px; color: #777;"><?=$url->getInsertedAgo()?></td>
+                <td><a href="<?=$url->getShortUrl()?>" target="_blank"><?=$url->getShortUrl(false)?></a></td>
+                <td><a href="/shorten/?info=<?=$url->getHash()?>">Details</a></td>
+                <td><?=$url->getHitCount()?></td>
+            </tr>
+        <? endforeach ?>
+        </tbody>
+    </table>
+
+    <ul class="pagination pull-right" style="margin: 0;">
+        <? if ($offset == 0): ?>
+            <li class="disabled"><a href="/shorten/" onclick="return false;">&laquo;</a></li>
+        <? else: ?>
+            <li<?=$offset == 0 ? ' class="disabled"' : ''?>><a href="/shorten/?offset=<?=$offset - $limit?>" onclick="shorten.updateUrlList(<?=$offset - $limit?>); return false;">&laquo;</a></li>
+        <? endif ?>
+        <? if ($offset + $limit >= $urlsCount): ?>
+            <li class="disabled"><a href="/shorten/?offset=<?=$offset?>" onclick="return false;">&raquo;</a></li>
+        <? else: ?>
+            <li<?=$offset + $limit >= $urlsCount ? ' class="disabled"' : ''?>><a href="/shorten/?offset=<?=$offset + $limit?>" onclick="shorten.updateUrlList(<?=$offset + $limit?>); return false;">&raquo;</a></li>
+        <? endif ?>
+    </ul>
+    <span class="pull-right" style="margin: 8px 20px 0 0;"><?=$offset + 1?> - <?=$offset + count($urls)?> of <?=$urlsCount?></span>
+
+    <div class="clearfix"></div>
+<? else: ?>
+    No shortened URLs yet
+<? endif ?>

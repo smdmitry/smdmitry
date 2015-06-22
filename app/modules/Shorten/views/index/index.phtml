@@ -1,0 +1,122 @@
+<style>
+    .table-hover > tbody > tr:hover > td,
+    .table-hover > tbody > tr:hover > th {
+        background-color: #ebebeb;
+        cursor: pointer;
+    }
+</style>
+<div class="row">
+    <div class="col-sm-6 blog-main">
+        <form role="form" onsubmit="shorten.click(); return false;" style="border: 1px #ebebeb solid; background: #f5f5f5; padding: 30px; padding-bottom: 20px;">
+            <div class="form-group">
+                <label for="longUrl">Paste your long URL here:</label><br/>
+                <input type="text" id="longUrl" class="form-control pull-left" style="width: 340px;">
+
+                <button type="submit" class="btn btn-primary pull-right">Shorten URL</button>
+                <div class="clearfix"></div>
+            </div>
+        </form>
+
+        <div id="urlList" style="border: 1px #ebebeb solid; background: #f5f5f5; margin-top: 20px; padding: 30px; padding-bottom: 20px;">
+            <? include 'url_list.phtml' ?>
+        </div>
+    </div>
+
+    <div id="shortUrlInfo" class="col-sm-6">
+        <? if (!empty($urlInfo)): ?>
+            <? include 'url_info.phtml' ?>
+        <? endif ?>
+    </div>
+</div>
+
+<script>
+    var shorten = {
+        click: function() {
+            var longUrl = $('#longUrl').val();
+
+            $.post('/shorten/index/add/', {url: longUrl}, function(data) {
+                if (data.res) {
+                    shorten.updateUrlList();
+                    shorten.showUrlInfo(data.data.hash);
+                } else {
+                    $('#longUrl').popover({trigger: 'manual',
+                        placement : 'top',
+                        html: 'true',
+                        content : data.data.error
+                    }).popover('show');
+
+                    setTimeout(function () {
+                        $('#longUrl').popover('destroy');
+                    }, 2000);
+                }
+            });
+        },
+        shortUrlFocus: function(el) {
+            el.on('click', function () {
+                shorten.shortUrlFocus(this);
+            });
+
+            el.tooltip();
+
+            $(el).focus();
+            $(el).select();
+        },
+        getPreloaderHtml: function() {
+          return '<img src="http://r4k.lipo.co.ke/job/style/template2/temp/loading.gif" />';
+        },
+        addPreloader: function(el) {
+            el = $(el);
+
+            var position = el.position();
+            var div = $('<div><img src="http://r4k.lipo.co.ke/job/style/template2/temp/loading.gif" /></div>')
+                .css('background', 'white')
+                .css('position', 'absolute')
+                .css('opacity', 0.7)
+                .css('width', el.width() + 'px')
+                .css('height', el.height() + 'px')
+                .css('left', position.left + 'px')
+                .css('top', position.top + 'px').appendTo('body');
+
+            setTimeout(function() {
+                if (div && div.parent() && div.parent().length) {
+                    div.remove();
+                }
+            }, 5000);
+
+            el.html('');
+            div.remove();
+
+            return div;
+        },
+        showUrlInfo: function(hash) {
+            var preloader = shorten.addPreloader($('#shortUrlInfo'));
+            $.post('/shorten/index/info/', {hash: hash}, function(data) {
+                preloader && preloader.remove();
+                $('#shortUrlInfo').html(data.data.html);
+                shorten.shortUrlFocus($('#shortUrl'));
+            });
+        },
+        currentUrlListOffset: 0,
+        updateUrlList: function(offset) {
+            if (typeof offset !== 'undefined') {
+                shorten.currentUrlListOffset = offset;
+            } else {
+                offset = shorten.currentUrlListOffset;
+            }
+
+            var preloader = shorten.addPreloader($('#urlList'));
+            $.post('/shorten/index/list/', {offset: offset}, function(data) {
+                preloader && preloader.remove();
+                $('#urlList').html(data.data.html);
+            });
+        }
+    };
+
+    $(function () {
+        <? if (!empty($urlInfo)): ?>
+            shorten.shortUrlFocus($('#shortUrl'));
+        <? else: ?>
+            $('#longUrl').focus();
+        <? endif ?>
+    });
+</script>

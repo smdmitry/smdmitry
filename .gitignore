@@ -1,0 +1,5 @@
+/.idea
+/vendor/Phalcon
+/backup
+prod.override.php
+smtpd-config.php

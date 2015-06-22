@@ -1,0 +1,185 @@
+<div data-role="tabs">
+    <div class="ui-content" data-role="content" role="main" id="autosms_server">
+        <style>
+            .sqrbtn-a, .sqrbtn-b, .sqrbtn-solo {
+                height: 100px;
+            }
+            .ui-block-a, .ui-block-b {
+                width: 49% !important;
+            }
+            .ui-block-a {
+                margin-right: 1% !important;
+            }
+            .ui-block-b {
+                margin-left: 1% !important;
+            }
+            .ui-btn {
+                margin: .2em 0;
+            }
+        </style>
+
+        <fieldset class="ui-grid-a">
+            <div class="ui-block-a">
+                <button class="sqrbtn-a taphold" data-theme="b" data-cmdid="<?=Autosms\Service\Command::TYPE_ENGINE_ON?>">Автозапуск</button>
+            </div>
+            <div class="ui-block-b">
+                <button class="sqrbtn-b taphold" data-theme="e" data-cmdid="<?=Autosms\Service\Command::TYPE_HEATING_SWITCH?>">Обогрев</button>
+            </div>
+        </fieldset>
+        <fieldset class="ui-grid-a">
+            <div class="ui-block-a">
+                <button class="sqrbtn-a taphold" data-theme="g" data-cmdid="<?=Autosms\Service\Command::TYPE_OPEN?>">Открыть</button>
+            </div>
+            <div class="ui-block-b">
+                <button class="sqrbtn-b taphold" data-theme="d" data-cmdid="<?=Autosms\Service\Command::TYPE_CLOSE?>">Закрыть</button>
+            </div>
+        </fieldset>
+        <fieldset class="ui-grid-solo">
+            <button class="sqrbtn-solo taphold" data-theme="a" data-cmdid="<?=Autosms\Service\Command::TYPE_SEARCH?>">Поиск на парковке</button>
+        </fieldset>
+
+        <div data-role="collapsible-set" data-theme="f" data-content-theme="f">
+            <div data-role="collapsible" data-collapsed-icon="flat-time" data-expanded-icon="flat-cross" data-collapsed="false">
+                <h3>История</h3>
+                <p>
+                <div class="row">
+                    <div id="popupMsg"></div>
+
+                    <? include 'queue.phtml' ?>
+                </div>
+                </p>
+            </div>
+            <div data-role="collapsible" data-collapsed-icon="flat-menu" data-expanded-icon="flat-cross">
+                <h3>Все команды</h3>
+                <p data-theme="a">
+                    <? foreach ($types as $typeId => $typeData): ?>
+                        <button class="taphold" data-cmdid="<?=$typeId?>"><?=$typeData['title']?></button>
+                    <? endforeach ?>
+                </p>
+            </div>
+            <div data-role="collapsible" data-collapsed-icon="flat-man" data-expanded-icon="flat-cross">
+                <h3>Пользователь</h3>
+                <p>
+                    Юзер: <?=$user->getId()?>, Авто: <?=$car->getId()?>, Баланс: <?=$user->getBalance()?>
+                </p>
+            </div>
+        </div>
+
+        <a href="/autosms/" data-role="button" onclick="location.reload(true);" data-theme="c">Обновить данные</a>
+        <br/><br/>
+    </div>
+
+    <div class="ui-content" data-role="content" id="autosms_sms">
+        <? foreach ($models as $typeId => $model): ?>
+            <a data-role="button" href="sms:<?=$car->getPhone()?>&body=<?=$model->getText()?>" target="_blank"><?=$model->getTitle()?></a>
+        <? endforeach ?>
+        <br/><br/>
+    </div>
+
+    <div data-role="footer" data-position="fixed" data-fullscreen="true" data-tap-toggle="false">
+        <div id="pressProgress" style="height: 3px; background: #19242e; width: 0px; margin-top: -4px;"></div>
+        <div data-role="navbar">
+            <ul>
+                <li><a href="#autosms_server" data-theme="a" data-ajax="false">Управление</a></li>
+                <li><a href="#autosms_sms" data-theme="a" data-ajax="false">SMS</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    var autosms = {
+        updateRequest: null,
+        cmd: function (command) {
+            //autosms.showCommandProgress(command, 'Отправка команды...');
+
+            $.post('/autosms/index/cmd/', {cmd: command}, function (data) {
+                autosms.hideCommandProgress();
+
+                if (data.res) {
+                    //autosms.showCommandProgress(command, 'Ожидание ответа от сигнализаци..');
+                    autosms.updateQueue();
+                } else {
+                    autosms.showError('Ошибка: ' + data.data.text);
+                    setTimeout(autosms.hideCommandProgress, 1000);
+                }
+            });
+        },
+        showError: function(status) {
+            $('#popupMsg').html(status);
+        },
+        showCommandProgress: function(title, status) {
+            $('#popupMsg').html('<h1>'+title+'</h1>'+status);
+        },
+        hideCommandProgress: function(title, status) {
+            $('#popupMsg').html('');
+        },
+        updateQueue: function() {
+            if (autosms.updateRequest) {
+                return;
+            }
+            autosms.updateRequest = $.post('/autosms/index/getQueue/', {}, function (data) {
+                autosms.updateRequest = null;
+
+                if (data.data.html) {
+                    $('#queueList').replaceWith(data.data.html);
+                } else {
+                    //autosms.showError(command, 'Произошла ошибка при отправке команды!');
+                }
+            });
+        },
+        startQueueUpdate: function() {
+            setInterval(autosms.updateQueue, 1000);
+        }
+    };
+    $(function() {
+        autosms.startQueueUpdate();
+
+        var lastDownEvt;
+        var pressTimer;
+        var pressProgressInterval;
+        var pressStart;
+        var pressDuration = 1000;
+
+        function clearPressTimer() {
+            clearTimeout(pressTimer);
+            clearInterval(pressProgressInterval);
+            $('#pressProgress').css('width', '0px');
+        }
+
+        $('body').on('scrollstart', function(evt) {
+            clearPressTimer();
+        });
+        $('.taphold').on('vmouseup contextmenu', function(evt) {
+            clearPressTimer();
+        }).on('vmousecancel',function(evt) {
+            clearPressTimer();
+        }).on('vmouseout',function(evt) {
+            var thresh = 12;
+            if(!lastDownEvt) return;
+            if(evt.target !== lastDownEvt.target) return;
+            if(Math.abs(evt.screenX - lastDownEvt.screenX) > thresh ||
+                Math.abs(evt.screenY - lastDownEvt.screenY) > thresh) {
+                $(lastDownEvt.target).trigger("vmousecancel");
+            }
+        }).on('vmousedown',function(evt) {
+            lastDownEvt = evt;
+
+            pressStart = new Date();
+            clearTimeout(pressTimer);
+            pressTimer = window.setTimeout(function() {
+                clearPressTimer();
+
+                autosms.cmd($(lastDownEvt.target).data('cmdid'));
+
+                $('html, body').animate({
+                    scrollTop: $('#popupMsg').offset().top - 50
+                });
+            }, pressDuration);
+            clearInterval(pressProgressInterval);
+            pressProgressInterval = window.setInterval(function() {
+                $('#pressProgress').css('width', ((new Date() - pressStart + 1) / pressDuration * 100) + '%');
+            }, 10);
+        });
+    });
+</script>
