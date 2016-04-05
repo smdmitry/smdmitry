@@ -23,6 +23,7 @@ if ($type == 'trie') {
 
     echo "<br>Result: {$result}<br><br>";
     echo "<hr>Working time: " . (microtime(true) - $start2) . " sec<br>";
+    echo "Memory usage: " . (memory_get_peak_usage(true) / 1024 / 1024) . " Mb<br>";
 } else {
     $start = microtime(true);
 
@@ -34,10 +35,13 @@ if ($type == 'trie') {
 
     echo "<br>Result: {$result}<br><br>";
     echo "<hr>Working time: " . (microtime(true) - $start) . " sec<br>";
+    echo "Memory usage: " . (memory_get_peak_usage(true) / 1024 / 1024) . " Mb<br>";
 }
 ?>
 
 <br><br><br><br><hr>
+<a style="color: red; font-weight: bold;;" href="https://github.com/smdmitry/smdmitry/tree/master/public/breathalyzer" target="_blank">Source code on GitHub</a><br><br>
+
 Type: brute<br>
 <a href="/breathalyzer/?input=4.in">Test 4.in</a><br>
 <a href="/breathalyzer/?input=8.in">Test 8.in</a><br>
